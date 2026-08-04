@@ -167,6 +167,35 @@
         .glass-card:hover::before {
             opacity: 1.4;
         }
+        .glass-highlight {
+            position: absolute;
+            inset: 0;
+            border-radius: var(--radius);
+            background: radial-gradient(
+                circle at 50% 50%,
+                rgba(255,255,255,0.18) 0%,
+                rgba(255,255,255,0.06) 35%,
+                rgba(255,255,255,0) 70%
+            );
+            z-index: 3;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.35s ease;
+            mix-blend-mode: soft-light;
+        }
+        .glass-card:hover .glass-highlight {
+            opacity: 1;
+            background: radial-gradient(
+                circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+                rgba(255,255,255,0.22) 0%,
+                rgba(255,255,255,0.08) 28%,
+                rgba(255,255,255,0) 72%
+            );
+        }
+        .glass-card {
+            --mouse-x: 50%;
+            --mouse-y: 50%;
+        }
         .icon-wrap {
             position: relative;
             z-index: 2;
@@ -257,16 +286,19 @@
             <div class="cards-row" id="cards-row">
                 <a class="glass-card" href="https://navidrome.fhvps.co.uk" id="card-navidrome">
                     <div class="glass-surface"></div>
+                    <div class="glass-highlight"></div>
                     <div class="icon-wrap"><img src="/logos/navidrome.png" alt="Navidrome"></div>
                     <span class="card-label">Navidrome</span>
                 </a>
                 <a class="glass-card" href="https://hermes.fhvps.co.uk" id="card-dashboard">
                     <div class="glass-surface"></div>
+                    <div class="glass-highlight"></div>
                     <div class="icon-wrap"><img src="/logos/hermes_logo.png" alt="Dashboard" class="hermes-logo"></div>
                     <span class="card-label">Dashboard</span>
                 </a>
                 <a class="glass-card" href="https://slskd.fhvps.co.uk" id="card-slskd">
                     <div class="glass-surface"></div>
+                    <div class="glass-highlight"></div>
                     <div class="icon-wrap"><img src="/logos/slskd.png" alt="SLSKD"></div>
                     <span class="card-label">SLSKD</span>
                 </a>
@@ -453,6 +485,13 @@
                 target[i].ry = dx * 0.45 * influence;
                 target[i].scale = 1 + dist * 0.04;
                 target[i].glow = dist * 0.8;
+
+                // Update cursor highlight position within each card
+                const rect = card.getBoundingClientRect();
+                const x = ((cursorX - rect.left) / rect.width) * 100;
+                const y = ((cursorY - rect.top) / rect.height) * 100;
+                card.style.setProperty('--mouse-x', `${x}%`);
+                card.style.setProperty('--mouse-y', `${y}%`);
             });
         }
 
