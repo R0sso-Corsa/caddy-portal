@@ -300,7 +300,7 @@
                 uniform float uTime;
                 uniform vec2 uResolution;
 
-                // Simplex 3D noise from Ashima/webgl-noise
+                // Simplex 3D noise (Ashima/webgl-noise)
                 vec3 mod289(vec3 x){return x - floor(x*(1.0/289.0))*289.0;}
                 vec4 mod289(vec4 x){return x - floor(x*(1.0/289.0))*289.0;}
                 vec4 permute(vec4 x){return mod289(((x*34.0)+1.0)*x);}
@@ -348,18 +348,59 @@
                     return 42.0 * dot(m*m, vec4(dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3)));
                 }
 
+                // Fractal Brownian motion — layered octaves for terrain-like detail
+                float fbm(vec3 p){
+                    float val = 0.0;
+                    float amp = 0.5;
+                    float freq = 1.0;
+                    for(int i=0; i<6; i++){
+                        val += amp * snoise(p * freq);
+                        freq *= 2.1;
+                        amp *= 0.48;
+                    }
+                    return val;
+                }
+
+                // Domain-warped noise: warp the input coordinates by noise itself
+                float warpedNoise(vec2 st, float t){
+                    vec3 p = vec3(st, t);
+                    float wx = fbm(p + vec3(0.0, 1.7, 0.3));
+                    float wy = fbm(p + vec3(1.5, 0.0, 2.1));
+                    return fbm(vec3(st + vec2(wx, wy) * 0.55, t));
+                }
+
                 void main(){
                     vec2 st = (vUv-0.5)*vec2(uResolution.x/uResolution.y,1.0);
-                    float noise = snoise(vec3(st*1.6, uTime*0.04));
-                    noise = (noise + 1.0) / 2.0;
-                    float bands = 10.0;
-                    float rounded = ceil(noise * bands);
-                    float edge = abs((rounded / bands) - noise);
-                    float line = 1.0 - smoothstep(0.0, 0.06, edge);
-                    vec3 bg = vec3(0.0);
-                    vec3 fg = vec3(0.12, 0.12, 0.15);
-                    vec3 col = mix(bg, fg, line);
-                    col *= smoothstep(0.9, 0.0, length(st));
+                    float t = uTime * 0.012;
+
+                    // Two domain-warped layers at different scales
+                    float n1 = warpedNoise(st * 1.4, t);
+                    float n2 = warpedNoise(st * 2.8 + 3.7, t * 0.7);
+
+                    // Normalize each to [0,1]
+                    float v1 = (n1 + 1.0) * 0.5;
+                    float v2 = (n2 + 1.0) * 0.5;
+
+                    // Posterize into contour bands
+                    float bands1 = 8.0;
+                    float bands2 = 12.0;
+                    float r1 = ceil(v1 * bands1);
+                    float r2 = ceil(v2 * bands2);
+                    float edge1 = abs((r1 / bands1) - v1);
+                    float edge2 = abs((r2 / bands2) - v2);
+
+                    // Thin lines with smooth anti-aliasing
+                    float line1 = 1.0 - smoothstep(0.0, 0.045, edge1);
+                    float line2 = 1.0 - smoothstep(0.0, 0.035, edge2);
+
+                    // Fade the smaller-scale layer so it reads as texture, not noise
+                    float line = max(line1, line2 * 0.35);
+
+                    // Depth-based brightness: lines closer to center slightly brighter
+                    float depth = 1.0 - smoothstep(0.0, 0.9, length(st));
+                    vec3 fg = mix(vec3(0.08, 0.08, 0.10), vec3(0.18, 0.18, 0.22), depth * 0.6);
+
+                    vec3 col = mix(vec3(0.0), fg, line);
                     gl_FragColor = vec4(col, 1.0);
                 }
             `
