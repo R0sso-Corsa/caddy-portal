@@ -396,9 +396,11 @@
                     // Fade the smaller-scale layer so it reads as texture, not noise
                     float line = max(line1, line2 * 0.35);
 
-                    // Depth-based brightness: lines closer to center slightly brighter
+                    // White topographic lines with subtle grey depth variation
                     float depth = 1.0 - smoothstep(0.0, 0.9, length(st));
-                    vec3 fg = mix(vec3(0.08, 0.08, 0.10), vec3(0.18, 0.18, 0.22), depth * 0.6);
+                    vec3 lineBright = vec3(0.85, 0.85, 0.88);
+                    vec3 lineDim = vec3(0.55, 0.55, 0.60);
+                    vec3 fg = mix(lineDim, lineBright, depth * 0.7 + 0.3);
 
                     vec3 col = mix(vec3(0.0), fg, line);
                     gl_FragColor = vec4(col, 1.0);
