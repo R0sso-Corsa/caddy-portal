@@ -417,22 +417,51 @@
         }
         requestAnimationFrame(animate);
 
-        // ── CARD TILT TOWARD CURSOR ──
+        // ── CARD TILT + REACTIVE TRACKING (always follows cursor) ──
         const cards = Array.from(document.querySelectorAll('.glass-card'));
+        let target = cards.map(() => ({ rx: 0, ry: 0, scale: 1, glow: 0 }));
+        let current = cards.map(() => ({ rx: 0, ry: 0, scale: 1, glow: 0 }));
+
         document.addEventListener('mousemove', e => {
-            cards.forEach(card => {
+            cards.forEach((card, i) => {
                 const rect = card.getBoundingClientRect();
                 const cx = rect.left + rect.width / 2;
                 const cy = rect.top + rect.height / 2;
                 const dx = (e.clientX - cx) / (rect.width / 2);
                 const dy = (e.clientY - cy) / (rect.height / 2);
                 const dist = Math.sqrt(dx * dx + dy * dy);
-                const influence = Math.max(0, 1 - dist * 1.2);
-                const rx = -dy * 0.35 * influence;
-                const ry = dx * 0.35 * influence;
-                card.style.transform = `rotateX(${rx}rad) rotateY(${ry}rad)`;
+
+                // Always track: stronger reaction the closer the cursor
+                const influence = Math.max(0, 1 - dist * 0.35);
+                target[i].rx = -dy * 0.5 * influence;
+                target[i].ry = dx * 0.5 * influence;
+                target[i].scale = 1 + influence * 0.06;
+                target[i].glow = influence;
             });
         });
+
+        // Reset when mouse leaves window
+        document.addEventListener('mouseleave', () => {
+            target.forEach(t => { t.rx = 0; t.ry = 0; t.scale = 1; t.glow = 0; });
+        });
+
+        function lerp(a, b, t) { return a + (b - a) * t; }
+
+        function animateTilt() {
+            cards.forEach((card, i) => {
+                current[i].rx = lerp(current[i].rx, target[i].rx, 0.12);
+                current[i].ry = lerp(current[i].ry, target[i].ry, 0.12);
+                current[i].scale = lerp(current[i].scale, target[i].scale, 0.1);
+                current[i].glow = lerp(current[i].glow, target[i].glow, 0.1);
+
+                card.style.transform = `rotateX(${current[i].rx}rad) rotateY(${current[i].ry}rad) scale(${current[i].scale})`;
+                card.style.boxShadow = current[i].glow > 0.01
+                    ? `0 0 ${20 + current[i].glow * 25}px rgba(120,120,140,${current[i].glow * 0.4})`
+                    : '0 8px 32px rgba(0,0,0,0.4)';
+            });
+            requestAnimationFrame(animateTilt);
+        }
+        requestAnimationFrame(animateTilt);
 
         window.addEventListener('resize', () => {
             renderer.setSize(window.innerWidth, window.innerHeight);
