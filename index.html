@@ -398,8 +398,8 @@
 
                     // White topographic lines with subtle grey depth variation
                     float depth = 1.0 - smoothstep(0.0, 0.9, length(st));
-                    vec3 lineBright = vec3(0.85, 0.85, 0.88);
-                    vec3 lineDim = vec3(0.55, 0.55, 0.60);
+                    vec3 lineBright = vec3(0.30, 0.30, 0.34);
+                    vec3 lineDim = vec3(0.14, 0.14, 0.17);
                     vec3 fg = mix(lineDim, lineBright, depth * 0.7 + 0.3);
 
                     vec3 col = mix(vec3(0.0), fg, line);
