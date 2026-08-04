@@ -417,34 +417,35 @@
         }
         requestAnimationFrame(animate);
 
-        // ── CARD TILT + REACTIVE TRACKING (fluid, less rigid) ──
+        // ── CARD TILT + REACTIVE TRACKING (always active, global cursor tracking) ──
         const cards = Array.from(document.querySelectorAll('.glass-card'));
         let target = cards.map(() => ({ rx: 0, ry: 0, scale: 1, glow: 0 }));
         let current = cards.map(() => ({ rx: 0, ry: 0, scale: 1, glow: 0 }));
+        let viewportCX = window.innerWidth / 2;
+        let viewportCY = window.innerHeight / 2;
+        let cursorX = viewportCX;
+        let cursorY = viewportCY;
 
-        // Smooth raw mouse input so cards don't feel robotic
-        let smoothMouse = { x: -9999, y: -9999 };
-        const MOUSE_SMOOTH = 0.18;
-
+        // Always update from the latest cursor position, even when it isn't moving
         document.addEventListener('mousemove', e => {
-            smoothMouse.x = e.clientX;
-            smoothMouse.y = e.clientY;
+            cursorX = e.clientX;
+            cursorY = e.clientY;
+        });
+
+        window.addEventListener('resize', () => {
+            viewportCX = window.innerWidth / 2;
+            viewportCY = window.innerHeight / 2;
         });
 
         function updateCardTargets() {
+            // Normalized offset from viewport center: -1 to 1 on each axis
+            const dx = (cursorX - viewportCX) / (viewportCX || 1);
+            const dy = (cursorY - viewportCY) / (viewportCY || 1);
+            const dist = Math.min(1, Math.sqrt(dx * dx + dy * dy));
+            const influence = Math.min(1, dist * 1.1);
+
             cards.forEach((card, i) => {
-                const rect = card.getBoundingClientRect();
-                const cx = rect.left + rect.width / 2;
-                const cy = rect.top + rect.height / 2;
-
-                // Normalized offset from card center
-                const dx = Math.max(-1, Math.min(1, (smoothMouse.x - cx) / (rect.width / 2)));
-                const dy = Math.max(-1, Math.min(1, (smoothMouse.y - cy) / (rect.height / 2)));
-
-                // Softer falloff: full tilt only near edges, gentle near center
-                const dist = Math.sqrt(dx * dx + dy * dy);
-                const influence = Math.min(1, dist * 1.1);
-
+                // Each card tracks the global cursor direction, not just proximity
                 target[i].rx = -dy * 0.28 * influence;
                 target[i].ry = dx * 0.28 * influence;
                 target[i].scale = 1 + dist * 0.04;
@@ -452,18 +453,9 @@
             });
         }
 
-        // Reset when mouse leaves window — keep last position, just fade glow
-        document.addEventListener('mouseleave', () => {
-            target.forEach(t => { t.scale = 1; t.glow = 0; });
-        });
-
         function lerp(a, b, t) { return a + (b - a) * t; }
 
         function animateTilt() {
-            // Low-pass the mouse position itself for extra fluidity
-            smoothMouse.x = lerp(smoothMouse.x === -9999 ? smoothMouse.x : smoothMouse.x, smoothMouse.x, MOUSE_SMOOTH);
-            smoothMouse.y = lerp(smoothMouse.y === -9999 ? smoothMouse.y : smoothMouse.y, smoothMouse.y, MOUSE_SMOOTH);
-
             updateCardTargets();
 
             cards.forEach((card, i) => {
