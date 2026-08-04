@@ -452,11 +452,9 @@
             });
         }
 
-        // Reset when mouse leaves window
+        // Reset when mouse leaves window — keep last position, just fade glow
         document.addEventListener('mouseleave', () => {
-            smoothMouse.x = -9999;
-            smoothMouse.y = -9999;
-            target.forEach(t => { t.rx = 0; t.ry = 0; t.scale = 1; t.glow = 0; });
+            target.forEach(t => { t.scale = 1; t.glow = 0; });
         });
 
         function lerp(a, b, t) { return a + (b - a) * t; }
