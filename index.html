@@ -417,49 +417,66 @@
         }
         requestAnimationFrame(animate);
 
-        // ── CARD TILT + REACTIVE TRACKING (always tracks cursor relative to card bounds) ──
+        // ── CARD TILT + REACTIVE TRACKING (fluid, less rigid) ──
         const cards = Array.from(document.querySelectorAll('.glass-card'));
         let target = cards.map(() => ({ rx: 0, ry: 0, scale: 1, glow: 0 }));
         let current = cards.map(() => ({ rx: 0, ry: 0, scale: 1, glow: 0 }));
 
+        // Smooth raw mouse input so cards don't feel robotic
+        let smoothMouse = { x: -9999, y: -9999 };
+        const MOUSE_SMOOTH = 0.18;
+
         document.addEventListener('mousemove', e => {
+            smoothMouse.x = e.clientX;
+            smoothMouse.y = e.clientY;
+        });
+
+        function updateCardTargets() {
             cards.forEach((card, i) => {
                 const rect = card.getBoundingClientRect();
                 const cx = rect.left + rect.width / 2;
                 const cy = rect.top + rect.height / 2;
 
-                // Normalized offset from card center, bounded by card dimensions
-                const dx = Math.max(-1, Math.min(1, (e.clientX - cx) / (rect.width / 2)));
-                const dy = Math.max(-1, Math.min(1, (e.clientY - cy) / (rect.height / 2)));
+                // Normalized offset from card center
+                const dx = Math.max(-1, Math.min(1, (smoothMouse.x - cx) / (rect.width / 2)));
+                const dy = Math.max(-1, Math.min(1, (smoothMouse.y - cy) / (rect.height / 2)));
 
-                // Always reactive: tilt is proportional to cursor offset within card bounds
-                target[i].rx = -dy * 0.45;
-                target[i].ry = dx * 0.45;
-
-                // Scale up slightly more the farther the cursor is from center
+                // Softer falloff: full tilt only near edges, gentle near center
                 const dist = Math.sqrt(dx * dx + dy * dy);
-                target[i].scale = 1 + dist * 0.08;
-                target[i].glow = dist;
+                const influence = Math.min(1, dist * 1.1);
+
+                target[i].rx = -dy * 0.28 * influence;
+                target[i].ry = dx * 0.28 * influence;
+                target[i].scale = 1 + dist * 0.04;
+                target[i].glow = dist * 0.8;
             });
-        });
+        }
 
         // Reset when mouse leaves window
         document.addEventListener('mouseleave', () => {
+            smoothMouse.x = -9999;
+            smoothMouse.y = -9999;
             target.forEach(t => { t.rx = 0; t.ry = 0; t.scale = 1; t.glow = 0; });
         });
 
         function lerp(a, b, t) { return a + (b - a) * t; }
 
         function animateTilt() {
+            // Low-pass the mouse position itself for extra fluidity
+            smoothMouse.x = lerp(smoothMouse.x === -9999 ? smoothMouse.x : smoothMouse.x, smoothMouse.x, MOUSE_SMOOTH);
+            smoothMouse.y = lerp(smoothMouse.y === -9999 ? smoothMouse.y : smoothMouse.y, smoothMouse.y, MOUSE_SMOOTH);
+
+            updateCardTargets();
+
             cards.forEach((card, i) => {
-                current[i].rx = lerp(current[i].rx, target[i].rx, 0.12);
-                current[i].ry = lerp(current[i].ry, target[i].ry, 0.12);
+                current[i].rx = lerp(current[i].rx, target[i].rx, 0.09);
+                current[i].ry = lerp(current[i].ry, target[i].ry, 0.09);
                 current[i].scale = lerp(current[i].scale, target[i].scale, 0.1);
                 current[i].glow = lerp(current[i].glow, target[i].glow, 0.1);
 
                 card.style.transform = `rotateX(${current[i].rx}rad) rotateY(${current[i].ry}rad) scale(${current[i].scale})`;
                 card.style.boxShadow = current[i].glow > 0.01
-                    ? `0 0 ${20 + current[i].glow * 25}px rgba(120,120,140,${current[i].glow * 0.4})`
+                    ? `0 0 ${18 + current[i].glow * 20}px rgba(120,120,140,${current[i].glow * 0.35})`
                     : '0 8px 32px rgba(0,0,0,0.4)';
             });
             requestAnimationFrame(animateTilt);
