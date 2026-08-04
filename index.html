@@ -446,8 +446,8 @@
 
             cards.forEach((card, i) => {
                 // Each card tracks the global cursor direction, not just proximity
-                target[i].rx = -dy * 0.28 * influence;
-                target[i].ry = dx * 0.28 * influence;
+                target[i].rx = -dy * 0.45 * influence;
+                target[i].ry = dx * 0.45 * influence;
                 target[i].scale = 1 + dist * 0.04;
                 target[i].glow = dist * 0.8;
             });
