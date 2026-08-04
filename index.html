@@ -184,6 +184,9 @@
             filter: grayscale(100%) brightness(400%);
             transition: filter 0.35s var(--easing);
         }
+        .icon-wrap img.hermes-logo {
+            filter: invert(1) brightness(2);
+        }
         .glass-card:hover .icon-wrap img {
             filter: none;
         }
@@ -259,7 +262,7 @@
                 </a>
                 <a class="glass-card" href="https://hermes.fhvps.co.uk" id="card-dashboard">
                     <div class="glass-surface"></div>
-                    <div class="icon-wrap"><img src="/logos/hermes_logo.png" alt="Dashboard"></div>
+                    <div class="icon-wrap"><img src="/logos/hermes_logo.png" alt="Dashboard" class="hermes-logo"></div>
                     <span class="card-label">Dashboard</span>
                 </a>
                 <a class="glass-card" href="https://slskd.fhvps.co.uk" id="card-slskd">
