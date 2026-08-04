@@ -177,7 +177,7 @@
                 rgba(255,255,255,0.05) 32%,
                 rgba(255,255,255,0) 70%
             );
-            z-index: 1;
+            z-index: 2;
             pointer-events: none;
             opacity: 0;
             transition: opacity 0.25s ease;
@@ -191,6 +191,23 @@
                 rgba(255,255,255,0.07) 28%,
                 rgba(255,255,255,0) 68%
             );
+        }
+        .glass-edge-highlight {
+            position: absolute;
+            inset: 0;
+            border-radius: var(--radius);
+            z-index: 1;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.25s ease;
+            background:
+                linear-gradient(to bottom, rgba(255,255,255, var(--edge-top, 0)) 0%, transparent 25%),
+                linear-gradient(to top, rgba(255,255,255, var(--edge-bottom, 0)) 0%, transparent 25%),
+                linear-gradient(to right, rgba(255,255,255, var(--edge-left, 0)) 0%, transparent 25%),
+                linear-gradient(to left, rgba(255,255,255, var(--edge-right, 0)) 0%, transparent 25%);
+        }
+        .glass-card:hover .glass-edge-highlight {
+            opacity: 1;
         }
         .glass-card {
             --mouse-x: 50%;
@@ -286,18 +303,21 @@
             <div class="cards-row" id="cards-row">
                 <a class="glass-card" href="https://navidrome.fhvps.co.uk" id="card-navidrome">
                     <div class="glass-surface"></div>
+                    <div class="glass-edge-highlight"></div>
                     <div class="glass-highlight"></div>
                     <div class="icon-wrap"><img src="/logos/navidrome.png" alt="Navidrome"></div>
                     <span class="card-label">Navidrome</span>
                 </a>
                 <a class="glass-card" href="https://hermes.fhvps.co.uk" id="card-dashboard">
                     <div class="glass-surface"></div>
+                    <div class="glass-edge-highlight"></div>
                     <div class="glass-highlight"></div>
                     <div class="icon-wrap"><img src="/logos/hermes_logo.png" alt="Dashboard" class="hermes-logo"></div>
                     <span class="card-label">Dashboard</span>
                 </a>
                 <a class="glass-card" href="https://slskd.fhvps.co.uk" id="card-slskd">
                     <div class="glass-surface"></div>
+                    <div class="glass-edge-highlight"></div>
                     <div class="glass-highlight"></div>
                     <div class="icon-wrap"><img src="/logos/slskd.png" alt="SLSKD"></div>
                     <span class="card-label">SLSKD</span>
@@ -492,6 +512,20 @@
                 const y = ((cursorY - rect.top) / rect.height) * 100;
                 card.style.setProperty('--mouse-x', `${x}%`);
                 card.style.setProperty('--mouse-y', `${y}%`);
+
+                // Update tracked edge highlight strength
+                const edgeX = Math.max(0, Math.min(1, (cursorX - rect.left) / rect.width));
+                const edgeY = Math.max(0, Math.min(1, (cursorY - rect.top) / rect.height));
+                const edgeTop = Math.max(0, 1 - edgeY);
+                const edgeBottom = Math.max(0, edgeY);
+                const edgeLeft = Math.max(0, 1 - edgeX);
+                const edgeRight = Math.max(0, edgeX);
+                const maxEdge = 0.45;
+                const edgeScale = 0.12;
+                card.style.setProperty('--edge-top', `${Math.min(maxEdge, edgeTop * edgeScale)}`);
+                card.style.setProperty('--edge-bottom', `${Math.min(maxEdge, edgeBottom * edgeScale)}`);
+                card.style.setProperty('--edge-left', `${Math.min(maxEdge, edgeLeft * edgeScale)}`);
+                card.style.setProperty('--edge-right', `${Math.min(maxEdge, edgeRight * edgeScale)}`);
             });
         }
 
