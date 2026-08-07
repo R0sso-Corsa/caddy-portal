@@ -553,16 +553,9 @@
                 current[i].scale = lerp(current[i].scale, target[i].scale, 0.1);
                 current[i].glow = lerp(current[i].glow, target[i].glow, 0.1);
 
-                // Preserve positioning transforms for center/orbit cards
-                const posTransform = card.classList.contains('center-card')
-                    ? 'translate(-50%, -50%)'
-                    : card.classList.contains('orbit-card')
-                        ? `translate(${card.style.left}, ${card.style.top}) translate(-50%, -50%)`
-                        : '';
-
-                card.style.transform = posTransform
-                    ? `${posTransform} rotateX(${current[i].rx}rad) rotateY(${current[i].ry}rad) scale(${current[i].scale})`
-                    : `rotateX(${current[i].rx}rad) rotateY(${current[i].ry}rad) scale(${current[i].scale})`;
+                const base = card.dataset.baseTransform || '';
+                const tilt = `rotateX(${current[i].rx}rad) rotateY(${current[i].ry}rad) scale(${current[i].scale})`;
+                card.style.transform = [base, tilt].filter(Boolean).join(' ');
 
                 card.style.boxShadow = current[i].glow > 0.01
                     ? `0 0 ${18 + current[i].glow * 20}px rgba(120,120,140,${current[i].glow * 0.35})`
@@ -618,8 +611,8 @@
             existing.style.position = 'absolute';
             existing.style.left = '50%';
             existing.style.top = '50%';
-            existing.style.transform = 'translate(-50%, -50%)';
             existing.style.zIndex = '2';
+            existing.dataset.baseTransform = 'translate(-50%, -50%)';
         }
 
         function positionOrbitCard(card, index, total) {
@@ -634,8 +627,8 @@
             card.style.position = 'absolute';
             card.style.left = `${xPct}%`;
             card.style.top = `${yPct}%`;
-            card.style.transform = 'translate(-50%, -50%)';
             card.style.zIndex = '1';
+            card.dataset.baseTransform = 'translate(-50%, -50%)';
         }
 
         function addServiceCard(service) {
