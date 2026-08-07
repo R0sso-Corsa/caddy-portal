@@ -18,12 +18,20 @@ hermes.fhvps.co.uk {
 	reverse_proxy 172.17.0.1:9119
 }
 
+admin.fhvps.co.uk {
+    reverse_proxy 172.20.0.1:8081
+}
+
 navidrome.fhvps.co.uk {
 	reverse_proxy navidrome:4533
 }
 
 slskd.fhvps.co.uk {
 	reverse_proxy slskd:5030
+}
+
+openwebui.fhvps.co.uk {
+	reverse_proxy open-webui:8080
 }
 
 vps-satellite-c50-b-1.tail2fd22b.ts.net {

@@ -28,7 +28,7 @@
             color: var(--foreground);
             font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
             -webkit-font-smoothing: antialiased;
-            overflow: hidden;
+            overflow: auto;
         }
         #bg-canvas {
             position: fixed;
@@ -89,13 +89,48 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            position: relative;
+            overflow: visible;
         }
         .cards-row {
-            display: flex;
-            gap: 24px;
-            justify-content: center;
-            align-items: center;
+            position: relative;
+            width: 100%;
+            max-width: 1100px;
+            height: 520px;
             perspective: 1000px;
+            margin: 0 auto;
+        }
+        @media (max-width: 680px) {
+            .cards-row {
+                height: 420px;
+                max-width: 100%;
+            }
+            .content {
+                align-items: flex-start;
+            }
+            .glass-card {
+                width: min(22vmin, 52vw);
+                aspect-ratio: 5 / 6;
+                height: auto;
+            }
+        }
+
+        .center-card {
+            margin: 0;
+        }
+        .orbit-card {
+            margin: 0;
+        }
+        .glass-card.center-card {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 2;
+        }
+        .glass-card.orbit-card {
+            position: absolute;
+            z-index: 1;
         }
         .footer-text {
             position: fixed;
@@ -293,35 +328,13 @@
     <div class="page">
         <div class="top-bar">
             <span class="brand">Hermes Homelab</span>
-            <nav class="top-nav">
+            <nav class="top-nav" id="top-nav">
                 <a href="https://hermes.fhvps.co.uk" class="active">Dashboard</a>
-                <a href="https://navidrome.fhvps.co.uk">Navidrome</a>
-                <a href="https://slskd.fhvps.co.uk">SLSKD</a>
             </nav>
         </div>
         <div class="content">
             <div class="cards-row" id="cards-row">
-                <a class="glass-card" href="https://navidrome.fhvps.co.uk" id="card-navidrome">
-                    <div class="glass-surface"></div>
-                    <div class="glass-edge-highlight"></div>
-                    <div class="glass-highlight"></div>
-                    <div class="icon-wrap"><img src="/logos/navidrome.png" alt="Navidrome"></div>
-                    <span class="card-label">Navidrome</span>
-                </a>
-                <a class="glass-card" href="https://hermes.fhvps.co.uk" id="card-dashboard">
-                    <div class="glass-surface"></div>
-                    <div class="glass-edge-highlight"></div>
-                    <div class="glass-highlight"></div>
-                    <div class="icon-wrap"><img src="/logos/hermes_logo.png" alt="Dashboard" class="hermes-logo"></div>
-                    <span class="card-label">Dashboard</span>
-                </a>
-                <a class="glass-card" href="https://slskd.fhvps.co.uk" id="card-slskd">
-                    <div class="glass-surface"></div>
-                    <div class="glass-edge-highlight"></div>
-                    <div class="glass-highlight"></div>
-                    <div class="icon-wrap"><img src="/logos/slskd.png" alt="SLSKD"></div>
-                    <span class="card-label">SLSKD</span>
-                </a>
+                <!-- Cards injected from admin panel services -->
             </div>
         </div>
     </div>
@@ -540,7 +553,17 @@
                 current[i].scale = lerp(current[i].scale, target[i].scale, 0.1);
                 current[i].glow = lerp(current[i].glow, target[i].glow, 0.1);
 
-                card.style.transform = `rotateX(${current[i].rx}rad) rotateY(${current[i].ry}rad) scale(${current[i].scale})`;
+                // Preserve positioning transforms for center/orbit cards
+                const posTransform = card.classList.contains('center-card')
+                    ? 'translate(-50%, -50%)'
+                    : card.classList.contains('orbit-card')
+                        ? `translate(${card.style.left}, ${card.style.top}) translate(-50%, -50%)`
+                        : '';
+
+                card.style.transform = posTransform
+                    ? `${posTransform} rotateX(${current[i].rx}rad) rotateY(${current[i].ry}rad) scale(${current[i].scale})`
+                    : `rotateX(${current[i].rx}rad) rotateY(${current[i].ry}rad) scale(${current[i].scale})`;
+
                 card.style.boxShadow = current[i].glow > 0.01
                     ? `0 0 ${18 + current[i].glow * 20}px rgba(120,120,140,${current[i].glow * 0.35})`
                     : '0 8px 32px rgba(0,0,0,0.4)';
@@ -552,6 +575,126 @@
         window.addEventListener('resize', () => {
             renderer.setSize(window.innerWidth, window.innerHeight);
             bgMat.uniforms.uResolution.value.set(window.innerWidth, window.innerHeight);
+        });
+
+        // ── DYNAMIC CARDS FROM ADMIN PANEL SERVICES ──
+        const cardsRow = document.getElementById('cards-row');
+        const topNav = document.getElementById('top-nav');
+        const CENTER_NAME = 'hermes-dashboard';
+        const CARD_DEG_GAP = 36;
+        const ORBIT_RADIUS_X = 42;
+        const ORBIT_RADIUS_Y = 36;
+
+        function serviceLogoFor(name, url) {
+            const map = {
+                navidrome: '/logos/navidrome.png',
+                slskd: '/logos/slskd.png',
+                'open-webui': '/logos/open-webui.png',
+                hermes: '/logos/hermes_logo.png'
+            };
+            if (map[name]) return map[name];
+            return `https://www.google.com/s2/favicons?domain=${new URL(url).hostname}&sz=64`;
+        }
+
+        function sizeForCenterCard(card) {
+            card.style.width = '220px';
+            card.style.height = '260px';
+            card.style.padding = '22px';
+            card.style.borderRadius = '28px';
+        }
+
+        function sizeForOrbitCard(card) {
+            card.style.width = '152px';
+            card.style.height = '182px';
+            card.style.padding = '16px';
+            card.style.borderRadius = '22px';
+        }
+
+        function positionCenterCard() {
+            const existing = document.getElementById(`card-${CENTER_NAME}`);
+            if (!existing) return;
+            existing.classList.add('center-card');
+            sizeForCenterCard(existing);
+            existing.style.position = 'absolute';
+            existing.style.left = '50%';
+            existing.style.top = '50%';
+            existing.style.transform = 'translate(-50%, -50%)';
+            existing.style.zIndex = '2';
+        }
+
+        function positionOrbitCard(card, index, total) {
+            card.classList.add('orbit-card');
+            sizeForOrbitCard(card);
+            const gap = CARD_DEG_GAP;
+            const startAngle = -90 - ((total - 1) * gap) / 2;
+            const angleDeg = startAngle + index * gap;
+            const angleRad = (angleDeg * Math.PI) / 180;
+            const xPct = 50 + Math.cos(angleRad) * ORBIT_RADIUS_X;
+            const yPct = 50 + Math.sin(angleRad) * ORBIT_RADIUS_Y;
+            card.style.position = 'absolute';
+            card.style.left = `${xPct}%`;
+            card.style.top = `${yPct}%`;
+            card.style.transform = 'translate(-50%, -50%)';
+            card.style.zIndex = '1';
+        }
+
+        function addServiceCard(service) {
+            // Skip if card already exists
+            if (document.getElementById(`card-${service.name}`)) return;
+
+            const card = document.createElement('a');
+            card.className = 'glass-card';
+            card.href = service.url;
+            card.id = `card-${service.name}`;
+            const fallbackLogo = serviceLogoFor(service.name, service.url).replace(/'/g, "\\'");
+            card.innerHTML = `
+                <div class="glass-surface"></div>
+                <div class="glass-edge-highlight"></div>
+                <div class="glass-highlight"></div>
+                <div class="icon-wrap"><img src="${service.logo || serviceLogoFor(service.name, service.url)}" alt="${service.name}" onerror="this.src='${fallbackLogo}'"></div>
+                <span class="card-label">${service.name}</span>
+            `;
+            cardsRow.appendChild(card);
+
+            // Add to top nav if desired
+            const navLink = document.createElement('a');
+            navLink.href = service.url;
+            navLink.textContent = service.name;
+            topNav.appendChild(navLink);
+
+            // Add to tilt tracking array
+            cards.push(card);
+            target.push({ rx: 0, ry: 0, scale: 1, glow: 0 });
+            current.push({ rx: 0, ry: 0, scale: 1, glow: 0 });
+        }
+
+        function layoutCards() {
+            const all = Array.from(document.querySelectorAll('.glass-card'));
+            const center = all.find(c => c.id === `card-${CENTER_NAME}`);
+            const orbit = all.filter(c => c.id !== `card-${CENTER_NAME}`);
+            if (center) positionCenterCard();
+            orbit.forEach((card, idx) => positionOrbitCard(card, idx, orbit.length));
+        }
+
+        async function loadServices() {
+            try {
+                const res = await fetch('https://admin.fhvps.co.uk/api/public/services');
+                if (!res.ok) return;
+                const services = await res.json();
+                services.forEach(s => addServiceCard(s));
+                layoutCards();
+            } catch (err) {
+                console.error('Failed to load services:', err);
+            }
+        }
+
+        loadServices();
+        setInterval(loadServices, 30000);
+
+        window.addEventListener('resize', () => {
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            bgMat.uniforms.uResolution.value.set(window.innerWidth, window.innerHeight);
+            layoutCards();
         });
     </script>
 </body>
