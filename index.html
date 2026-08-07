@@ -674,6 +674,10 @@
 
                 card.dataset.baseTransform = `translate(calc(-50% + ${tx}px), ${ty}px) rotate(${rot}deg) scale(${scale})`;
                 card.style.transform = card.dataset.baseTransform;
+
+                // Center cards on top of edge cards so middle is hoverable
+                const zDist = Math.abs(i - (total - 1) / 2);
+                card.style.zIndex = isFlying ? 100 : (50 - Math.round(zDist * 10));
             });
         }
 
