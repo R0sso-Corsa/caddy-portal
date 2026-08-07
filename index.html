@@ -640,11 +640,12 @@
             card.href = service.url;
             card.id = `card-${service.name}`;
             const fallbackLogo = serviceLogoFor(service.name, service.url).replace(/'/g, "\\'");
+            const isDashboard = service.name === 'hermes-dashboard' || (service.logo || '').includes('hermes');
             card.innerHTML = `
                 <div class="glass-surface"></div>
                 <div class="glass-edge-highlight"></div>
                 <div class="glass-highlight"></div>
-                <div class="icon-wrap"><img src="${service.logo || serviceLogoFor(service.name, service.url)}" alt="${service.name}" onerror="this.src='${fallbackLogo}'"></div>
+                <div class="icon-wrap"><img class="${isDashboard ? 'hermes-logo' : ''}" src="${service.logo || serviceLogoFor(service.name, service.url)}" alt="${service.name}" onerror="this.src='${fallbackLogo}'"></div>
                 <span class="card-label">${service.name}</span>
             `;
             cardsRow.appendChild(card);
