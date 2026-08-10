@@ -21,6 +21,20 @@
             --radius: 16px;
             --easing: cubic-bezier(0.16, 1, 0.3, 1);
         }
+        html.light-theme {
+            --bg-deep: #f2f4f6;
+            --bg-base: #ffffff;
+            --bg-elevated: #e6e9ee;
+            --surface: rgba(0,0,0,0.04);
+            --glass-frost: 0.12;
+            --glass-saturation: 1.1;
+            --border-glass: rgba(0,0,0,0.12);
+            --foreground: #111318;
+            --foreground-muted: rgba(0,0,0,0.55);
+        }
+        html.light-theme body {
+            color: var(--foreground);
+        }
         *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
         html, body {
             height: 100%;
@@ -673,6 +687,49 @@
                 card.style.zIndex = isFlying ? 100 : (total - i);
             });
         }
+
+        async function loadSettings() {
+            try {
+                const res = await fetch('https://admin.fhvps.co.uk/api/public/settings');
+                if (!res.ok) return;
+                const settings = await res.json();
+                applySetting('darkMode', settings.darkMode);
+                applySetting('glassEffects', settings.glassEffects);
+                applySetting('animations', settings.animations);
+                applySetting('autoRefresh', settings.autoRefresh);
+                localStorage.setItem('portalSettings', JSON.stringify(settings));
+            } catch (err) {
+                console.error('Failed to load settings from admin panel:', err);
+                const saved = localStorage.getItem('portalSettings');
+                if (saved) {
+                    const settings = JSON.parse(saved);
+                    applySetting('darkMode', settings.darkMode);
+                    applySetting('glassEffects', settings.glassEffects);
+                    applySetting('animations', settings.animations);
+                    applySetting('autoRefresh', settings.autoRefresh);
+                }
+            }
+        }
+
+        function applySetting(key, value) {
+            const enabled = value === true || value === 'true' || value === 1;
+            if (key === 'darkMode') {
+                document.documentElement.classList.toggle('light-theme', !enabled);
+            }
+            if (key === 'glassEffects') {
+                document.documentElement.dataset.glassEffects = enabled ? '1' : '0';
+            }
+            if (key === 'animations') {
+                document.documentElement.style.setProperty('--animations', enabled ? '1' : '0');
+                document.body.style.setProperty('--animation-state', enabled ? 'running' : 'paused');
+            }
+            if (key === 'autoRefresh') {
+                // Portal auto-refresh is controlled by the service loader interval
+                // This is kept for parity; portal loads services every 30s regardless
+            }
+        }
+
+        loadSettings();
 
         async function loadServices() {
             try {
