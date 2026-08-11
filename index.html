@@ -638,15 +638,33 @@
                 card.style.borderRadius = '22px';
                 cardsRow.appendChild(card);
 
-                // Hover fly-out animation
-                card.addEventListener('mouseenter', () => {
-                    card.classList.add('fly-out');
-                    card.dataset.flying = '1';
+                // Deck hover: activate nearest card when crossing the row
+                cardsRow.addEventListener('mousemove', (e) => {
+                    const deckCards = Array.from(document.querySelectorAll('.glass-card.deck-card'));
+                    const total = deckCards.length;
+                    if (total === 0) return;
+                    const rect = cardsRow.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    let closest = 0;
+                    let minDist = Infinity;
+                    deckCards.forEach((card, i) => {
+                        const cx = parseFloat(card.style.left) + card.offsetWidth / 2;
+                        const dist = Math.abs(x - cx);
+                        if (dist < minDist) { minDist = dist; closest = i; }
+                    });
+                    deckCards.forEach((card, i) => {
+                        const shouldFly = i === closest;
+                        card.classList.toggle('fly-out', shouldFly);
+                        card.dataset.flying = shouldFly ? '1' : '';
+                    });
                     layoutCards();
                 });
-                card.addEventListener('mouseleave', () => {
-                    card.classList.remove('fly-out');
-                    card.dataset.flying = '';
+                cardsRow.addEventListener('mouseleave', () => {
+                    const deckCards = Array.from(document.querySelectorAll('.glass-card.deck-card'));
+                    deckCards.forEach((card) => {
+                        card.classList.remove('fly-out');
+                        card.dataset.flying = '';
+                    });
                     layoutCards();
                 });
 
