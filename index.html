@@ -661,7 +661,7 @@
                 let closest = 0;
                 let minDist = Infinity;
                 deckCards.forEach((card, i) => {
-                    const cx = parseFloat(card.style.left) + card.offsetWidth / 2;
+                    const cx = card.getBoundingClientRect().left - rect.left + card.offsetWidth / 2;
                     const dist = Math.abs(x - cx);
                     if (dist < minDist) { minDist = dist; closest = i; }
                 });
