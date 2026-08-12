@@ -28,7 +28,7 @@
             color: var(--foreground);
             font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
             -webkit-font-smoothing: antialiased;
-            overflow: auto;
+            overflow: hidden;
         }
         #bg-canvas {
             position: fixed;
@@ -87,55 +87,15 @@
         .content {
             flex: 1;
             display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
-            position: relative;
-            overflow: visible;
-            gap: 40px;
         }
         .cards-row {
-            position: relative;
-            width: 100%;
-            max-width: 1100px;
-            height: 240px;
-            perspective: 1200px;
-            margin: 0 auto;
-        }
-        @media (max-width: 680px) {
-            .cards-row {
-                height: 200px;
-                max-width: 100%;
-            }
-            .content {
-                gap: 24px;
-            }
-        }
-
-        /* Dashboard card sits on top, centered */
-        .glass-card.center-card {
-            position: relative;
-            z-index: 10;
-            margin: 0 auto;
             display: flex;
-        }
-
-        /* Deck cards: overlap in a row below */
-        .glass-card.deck-card {
-            position: absolute;
-            top: 0;
-            left: 50%;
-            transform: translate(-50%, 0);
-            z-index: 1;
-            transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1),
-                        box-shadow 0.4s ease,
-                        z-index 0s linear 0.5s;
-        }
-        .glass-card.deck-card.fly-out {
-            z-index: 100;
-            transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1),
-                        box-shadow 0.4s ease,
-                        z-index 0s linear 0s;
+            gap: 24px;
+            justify-content: center;
+            align-items: center;
+            perspective: 1000px;
         }
         .footer-text {
             position: fixed;
@@ -333,14 +293,35 @@
     <div class="page">
         <div class="top-bar">
             <span class="brand">Hermes Homelab</span>
-            <nav class="top-nav" id="top-nav">
+            <nav class="top-nav">
                 <a href="https://hermes.fhvps.co.uk" class="active">Dashboard</a>
+                <a href="https://navidrome.fhvps.co.uk">Navidrome</a>
+                <a href="https://slskd.fhvps.co.uk">SLSKD</a>
             </nav>
         </div>
         <div class="content">
-            <div id="dashboard-card-container"></div>
             <div class="cards-row" id="cards-row">
-                <!-- Deck cards injected from admin panel services -->
+                <a class="glass-card" href="https://navidrome.fhvps.co.uk" id="card-navidrome">
+                    <div class="glass-surface"></div>
+                    <div class="glass-edge-highlight"></div>
+                    <div class="glass-highlight"></div>
+                    <div class="icon-wrap"><img src="/logos/navidrome.png" alt="Navidrome"></div>
+                    <span class="card-label">Navidrome</span>
+                </a>
+                <a class="glass-card" href="https://hermes.fhvps.co.uk" id="card-dashboard">
+                    <div class="glass-surface"></div>
+                    <div class="glass-edge-highlight"></div>
+                    <div class="glass-highlight"></div>
+                    <div class="icon-wrap"><img src="/logos/hermes_logo.png" alt="Dashboard" class="hermes-logo"></div>
+                    <span class="card-label">Dashboard</span>
+                </a>
+                <a class="glass-card" href="https://slskd.fhvps.co.uk" id="card-slskd">
+                    <div class="glass-surface"></div>
+                    <div class="glass-edge-highlight"></div>
+                    <div class="glass-highlight"></div>
+                    <div class="icon-wrap"><img src="/logos/slskd.png" alt="SLSKD"></div>
+                    <span class="card-label">SLSKD</span>
+                </a>
             </div>
         </div>
     </div>
@@ -492,14 +473,15 @@
         requestAnimationFrame(animate);
 
         // ── CARD TILT + REACTIVE TRACKING (always active, global cursor tracking) ──
-        const cards = [];
-        let target = [];
-        let current = [];
+        const cards = Array.from(document.querySelectorAll('.glass-card'));
+        let target = cards.map(() => ({ rx: 0, ry: 0, scale: 1, glow: 0 }));
+        let current = cards.map(() => ({ rx: 0, ry: 0, scale: 1, glow: 0 }));
         let viewportCX = window.innerWidth / 2;
         let viewportCY = window.innerHeight / 2;
         let cursorX = viewportCX;
         let cursorY = viewportCY;
 
+        // Always update from the latest cursor position, even when it isn't moving
         document.addEventListener('mousemove', e => {
             cursorX = e.clientX;
             cursorY = e.clientY;
@@ -511,23 +493,27 @@
         });
 
         function updateCardTargets() {
+            // Normalized offset from viewport center: -1 to 1 on each axis
             const dx = (cursorX - viewportCX) / (viewportCX || 1);
             const dy = (cursorY - viewportCY) / (viewportCY || 1);
             const dist = Math.min(1, Math.sqrt(dx * dx + dy * dy));
             const influence = Math.min(1, dist * 1.1);
 
             cards.forEach((card, i) => {
+                // Each card tracks the global cursor direction, not just proximity
                 target[i].rx = -dy * 0.45 * influence;
                 target[i].ry = dx * 0.45 * influence;
                 target[i].scale = 1 + dist * 0.04;
                 target[i].glow = dist * 0.8;
 
+                // Update cursor highlight position within each card
                 const rect = card.getBoundingClientRect();
                 const x = ((cursorX - rect.left) / rect.width) * 100;
                 const y = ((cursorY - rect.top) / rect.height) * 100;
                 card.style.setProperty('--mouse-x', `${x}%`);
                 card.style.setProperty('--mouse-y', `${y}%`);
 
+                // Update tracked edge highlight strength
                 const edgeX = Math.max(0, Math.min(1, (cursorX - rect.left) / rect.width));
                 const edgeY = Math.max(0, Math.min(1, (cursorY - rect.top) / rect.height));
                 const edgeTop = Math.max(0, 1 - edgeY);
@@ -554,10 +540,7 @@
                 current[i].scale = lerp(current[i].scale, target[i].scale, 0.1);
                 current[i].glow = lerp(current[i].glow, target[i].glow, 0.1);
 
-                const base = card.dataset.baseTransform || '';
-                const tilt = `rotateX(${current[i].rx}rad) rotateY(${current[i].ry}rad) scale(${current[i].scale})`;
-                card.style.transform = [base, tilt].filter(Boolean).join(' ');
-
+                card.style.transform = `rotateX(${current[i].rx}rad) rotateY(${current[i].ry}rad) scale(${current[i].scale})`;
                 card.style.boxShadow = current[i].glow > 0.01
                     ? `0 0 ${18 + current[i].glow * 20}px rgba(120,120,140,${current[i].glow * 0.35})`
                     : '0 8px 32px rgba(0,0,0,0.4)';
@@ -569,131 +552,7 @@
         window.addEventListener('resize', () => {
             renderer.setSize(window.innerWidth, window.innerHeight);
             bgMat.uniforms.uResolution.value.set(window.innerWidth, window.innerHeight);
-            layoutCards();
         });
-
-        // ── DYNAMIC CARDS FROM ADMIN PANEL SERVICES ──
-        const cardsRow = document.getElementById('cards-row');
-        const dashboardContainer = document.getElementById('dashboard-card-container');
-        const topNav = document.getElementById('top-nav');
-        const CENTER_NAME = 'hermes-dashboard';
-
-        // Deck configuration
-        const DECK_OVERLAP = 80;      // px horizontal offset each card
-        const DECK_FAN_LIFT = 8;      // px vertical stagger per card
-        const DECK_ROTATION = 2.5;    // deg rotation per card
-        const FLY_OUT_X = 0;          // px forward (0 = stays in column)
-        const FLY_OUT_Y = -120;       // px upward when hovered
-
-        function serviceLogoFor(name, url) {
-            const map = {
-                navidrome: '/logos/navidrome.png',
-                slskd: '/logos/slskd.png',
-                'open-webui': '/logos/open-webui.png',
-                hermes: '/logos/hermes_logo.png'
-            };
-            if (map[name]) return map[name];
-            return `https://www.google.com/s2/favicons?domain=${new URL(url).hostname}&sz=64`;
-        }
-
-        function addServiceCard(service) {
-            if (document.getElementById(`card-${service.name}`)) return;
-
-            const card = document.createElement('a');
-            card.className = 'glass-card';
-            card.href = service.url;
-            card.id = `card-${service.name}`;
-            const fallbackLogo = serviceLogoFor(service.name, service.url).replace(/'/g, "\\'");
-            const isDashboard = service.name === 'hermes-dashboard' || (service.logo || '').includes('hermes');
-            card.innerHTML = `
-                <div class="glass-surface"></div>
-                <div class="glass-edge-highlight"></div>
-                <div class="glass-highlight"></div>
-                <div class="icon-wrap"><img class="${isDashboard ? 'hermes-logo' : ''}" src="${service.logo || serviceLogoFor(service.name, service.url)}" alt="${service.name}" onerror="this.src='${fallbackLogo}'"></div>
-                <span class="card-label">${service.name}</span>
-            `;
-
-            // Dashboard card goes in its own container above the deck
-            if (service.center) {
-                card.classList.add('center-card');
-                card.style.width = '220px';
-                card.style.height = '260px';
-                card.style.padding = '22px';
-                card.style.borderRadius = '28px';
-                card.dataset.baseTransform = '';
-                dashboardContainer.appendChild(card);
-            } else {
-                card.classList.add('deck-card');
-                card.style.width = '180px';
-                card.style.height = '220px';
-                card.style.padding = '18px';
-                card.style.borderRadius = '22px';
-                cardsRow.appendChild(card);
-
-                // Hover fly-out animation
-                card.addEventListener('mouseenter', () => {
-                    card.classList.add('fly-out');
-                    card.dataset.flying = '1';
-                    layoutCards();
-                });
-                card.addEventListener('mouseleave', () => {
-                    card.classList.remove('fly-out');
-                    card.dataset.flying = '';
-                    layoutCards();
-                });
-
-                // Add to top nav
-                const navLink = document.createElement('a');
-                navLink.href = service.url;
-                navLink.textContent = service.name;
-                topNav.appendChild(navLink);
-            }
-
-            cards.push(card);
-            target.push({ rx: 0, ry: 0, scale: 1, glow: 0 });
-            current.push({ rx: 0, ry: 0, scale: 1, glow: 0 });
-        }
-
-        function layoutCards() {
-            const deckCards = Array.from(document.querySelectorAll('.glass-card.deck-card'));
-            const total = deckCards.length;
-            if (total === 0) return;
-
-            const startX = -((total - 1) * DECK_OVERLAP) / 2;
-
-            deckCards.forEach((card, i) => {
-                const baseX = startX + i * DECK_OVERLAP;
-                const baseY = i * DECK_FAN_LIFT;
-                const baseRot = (i - (total - 1) / 2) * DECK_ROTATION;
-                const isFlying = card.dataset.flying === '1';
-
-                const tx = baseX;
-                const ty = isFlying ? baseY + FLY_OUT_Y : baseY;
-                const rot = baseRot;
-                const scale = isFlying ? 1.12 : 1;
-
-                card.dataset.baseTransform = `translate(calc(-50% + ${tx}px), ${ty}px) rotate(${rot}deg) scale(${scale})`;
-                card.style.transform = card.dataset.baseTransform;
-
-                // Left cards on top of right cards (like a real deck held left-to-right)
-                card.style.zIndex = isFlying ? 100 : (total - i);
-            });
-        }
-
-        async function loadServices() {
-            try {
-                const res = await fetch('https://admin.fhvps.co.uk/api/public/services');
-                if (!res.ok) return;
-                const services = await res.json();
-                services.forEach(s => addServiceCard(s));
-                layoutCards();
-            } catch (err) {
-                console.error('Failed to load services:', err);
-            }
-        }
-
-        loadServices();
-        setInterval(loadServices, 30000);
     </script>
 </body>
 </html>
