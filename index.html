@@ -675,29 +675,31 @@
                 const deckCards = Array.from(document.querySelectorAll('.glass-card.deck-card'));
                 const total = deckCards.length;
                 if (total === 0) return;
-                const rect = cardsRow.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
 
-                const startX = -((total - 1) * DECK_OVERLAP) / 2;
-                let closest = 0;
+                const mx = e.clientX;
+                const my = e.clientY;
+
+                let closest = null;
                 let minDist = Infinity;
                 for (let i = 0; i < total; i++) {
-                    const cx = rect.width / 2 + (startX + i * DECK_OVERLAP);
-                    const cy = rect.height / 2 + i * DECK_FAN_LIFT;
-                    const dist = Math.hypot(x - cx, y - cy);
-                    if (dist < minDist) { minDist = dist; closest = i; }
+                    const r = deckCards[i].getBoundingClientRect();
+                    const cx = r.left + r.width / 2;
+                    const cy = r.top + r.height / 2;
+                    const dist = Math.hypot(mx - cx, my - cy);
+                    if (dist < minDist) { minDist = dist; closest = deckCards[i]; }
                 }
 
-                deckCards.forEach((card, i) => {
-                    const shouldFly = i === closest;
-                    const wasFlying = card.dataset.flying === '1';
-                    if (shouldFly !== wasFlying) {
-                        card.classList.toggle('fly-out', shouldFly);
-                        card.dataset.flying = shouldFly ? '1' : '';
-                        layoutCards();
-                    }
-                });
+                if (minDist < Math.max(deckCards[0].offsetWidth, 160)) {
+                    deckCards.forEach((card) => {
+                        const shouldFly = card === closest;
+                        const wasFlying = card.dataset.flying === '1';
+                        if (shouldFly !== wasFlying) {
+                            card.classList.toggle('fly-out', shouldFly);
+                            card.dataset.flying = shouldFly ? '1' : '';
+                            layoutCards();
+                        }
+                    });
+                }
             });
             cardsRow.addEventListener('mouseleave', () => {
                 const deckCards = Array.from(document.querySelectorAll('.glass-card.deck-card'));
