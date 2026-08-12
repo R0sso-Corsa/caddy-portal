@@ -548,6 +548,8 @@
             updateCardTargets();
 
             cards.forEach((card, i) => {
+                if (card.classList.contains('deck-card')) return;
+
                 current[i].rx = lerp(current[i].rx, target[i].rx, 0.09);
                 current[i].ry = lerp(current[i].ry, target[i].ry, 0.09);
                 current[i].scale = lerp(current[i].scale, target[i].scale, 0.1);
@@ -670,39 +672,21 @@
             });
         }
 
-        // Deck hover: activate nearest card when crossing the row
+        // Deck hover: use native elementFromPoint so only the actual visual card activates.
+        // No rect math, no predicted centers, no competing hit regions.
         if (cardsRow) {
             let rafId = null;
             let lastClosest = null;
 
-            function updateDeckHover(mx, my) {
-                const deckCards = Array.from(document.querySelectorAll('.glass-card.deck-card'));
-                const total = deckCards.length;
-                if (total === 0) return;
-
-                // Cache rects once per frame
-                const rects = deckCards.map(card => card.getBoundingClientRect());
-
-                // Find nearest card center
-                let closest = null;
-                let minDist = Infinity;
-                for (let i = 0; i < total; i++) {
-                    const cx = rects[i].left + rects[i].width / 2;
-                    const cy = rects[i].top + rects[i].height / 2;
-                    const dist = Math.hypot(mx - cx, my - cy);
-                    if (dist < minDist) { minDist = dist; closest = deckCards[i]; }
-                }
-
-                // Only mutate when the nearest card actually changed
-                if (closest === lastClosest) return;
-                lastClosest = closest;
-
-                deckCards.forEach((card) => {
-                    const shouldFly = card === closest;
-                    const wasFlying = card.dataset.flying === '1';
+            function activateCard(card) {
+                if (card === lastClosest) return;
+                lastClosest = card;
+                document.querySelectorAll('.glass-card.deck-card').forEach(c => {
+                    const shouldFly = c === card;
+                    const wasFlying = c.dataset.flying === '1';
                     if (shouldFly !== wasFlying) {
-                        card.classList.toggle('fly-out', shouldFly);
-                        card.dataset.flying = shouldFly ? '1' : '';
+                        c.classList.toggle('fly-out', shouldFly);
+                        c.dataset.flying = shouldFly ? '1' : '';
                     }
                 });
                 layoutCards();
@@ -712,14 +696,15 @@
                 if (rafId) return;
                 rafId = requestAnimationFrame(() => {
                     rafId = null;
-                    updateDeckHover(e.clientX, e.clientY);
+                    const el = document.elementFromPoint(e.clientX, e.clientY);
+                    const deckCard = el ? el.closest('.glass-card.deck-card') : null;
+                    activateCard(deckCard);
                 });
             });
             cardsRow.addEventListener('mouseleave', () => {
                 if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
                 lastClosest = null;
-                const deckCards = Array.from(document.querySelectorAll('.glass-card.deck-card'));
-                deckCards.forEach((card) => {
+                document.querySelectorAll('.glass-card.deck-card').forEach(card => {
                     card.classList.remove('fly-out');
                     card.dataset.flying = '';
                 });
