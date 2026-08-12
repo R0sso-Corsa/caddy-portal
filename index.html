@@ -132,7 +132,6 @@
             pointer-events: none;
         }
         .glass-card.deck-card.fly-out {
-            z-index: 100;
             pointer-events: auto;
             transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1),
                         box-shadow 0.4s ease;
@@ -663,7 +662,9 @@
                 card.dataset.baseTransform = `translate(calc(-50% + ${tx}px), ${ty}px) rotate(${rot}deg) scale(${scale})`;
                 card.style.transform = card.dataset.baseTransform;
 
-                card.style.zIndex = isFlying ? 100 : (total - i);
+                // Preserve left-overlaps-right stacking order.
+                // Right neighbors already have lower base z-index, so no flying boost is needed.
+                card.style.zIndex = total - i;
             });
         }
 
