@@ -21,20 +21,6 @@
             --radius: 16px;
             --easing: cubic-bezier(0.16, 1, 0.3, 1);
         }
-        html.light-theme {
-            --bg-deep: #f2f4f6;
-            --bg-base: #ffffff;
-            --bg-elevated: #e6e9ee;
-            --surface: rgba(0,0,0,0.04);
-            --glass-frost: 0.12;
-            --glass-saturation: 1.1;
-            --border-glass: rgba(0,0,0,0.12);
-            --foreground: #111318;
-            --foreground-muted: rgba(0,0,0,0.55);
-        }
-        html.light-theme body {
-            color: var(--foreground);
-        }
         *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
         html, body {
             height: 100%;
@@ -142,7 +128,14 @@
             transform: translate(-50%, 0);
             z-index: 1;
             transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1),
-                        box-shadow 0.4s ease;
+                        box-shadow 0.4s ease,
+                        z-index 0s linear 0.5s;
+        }
+        .glass-card.deck-card.fly-out {
+            z-index: 100;
+            transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+                        box-shadow 0.4s ease,
+                        z-index 0s linear 0s;
         }
         .footer-text {
             position: fixed;
@@ -342,7 +335,6 @@
             <span class="brand">Hermes Homelab</span>
             <nav class="top-nav" id="top-nav">
                 <a href="https://hermes.fhvps.co.uk" class="active">Dashboard</a>
-                <a href="https://admin.fhvps.co.uk">Admin</a>
             </nav>
         </div>
         <div class="content">
@@ -638,33 +630,15 @@
                 card.style.borderRadius = '22px';
                 cardsRow.appendChild(card);
 
-                // Deck hover: activate nearest card when crossing the row
-                cardsRow.addEventListener('mousemove', (e) => {
-                    const deckCards = Array.from(document.querySelectorAll('.glass-card.deck-card'));
-                    const total = deckCards.length;
-                    if (total === 0) return;
-                    const rect = cardsRow.getBoundingClientRect();
-                    const x = e.clientX - rect.left;
-                    let closest = 0;
-                    let minDist = Infinity;
-                    deckCards.forEach((card, i) => {
-                        const cx = parseFloat(card.style.left) + card.offsetWidth / 2;
-                        const dist = Math.abs(x - cx);
-                        if (dist < minDist) { minDist = dist; closest = i; }
-                    });
-                    deckCards.forEach((card, i) => {
-                        const shouldFly = i === closest;
-                        card.classList.toggle('fly-out', shouldFly);
-                        card.dataset.flying = shouldFly ? '1' : '';
-                    });
+                // Hover fly-out animation
+                card.addEventListener('mouseenter', () => {
+                    card.classList.add('fly-out');
+                    card.dataset.flying = '1';
                     layoutCards();
                 });
-                cardsRow.addEventListener('mouseleave', () => {
-                    const deckCards = Array.from(document.querySelectorAll('.glass-card.deck-card'));
-                    deckCards.forEach((card) => {
-                        card.classList.remove('fly-out');
-                        card.dataset.flying = '';
-                    });
+                card.addEventListener('mouseleave', () => {
+                    card.classList.remove('fly-out');
+                    card.dataset.flying = '';
                     layoutCards();
                 });
 
@@ -705,49 +679,6 @@
                 card.style.zIndex = isFlying ? 100 : (total - i);
             });
         }
-
-        async function loadSettings() {
-            try {
-                const res = await fetch('https://admin.fhvps.co.uk/api/public/settings');
-                if (!res.ok) return;
-                const settings = await res.json();
-                applySetting('darkMode', settings.darkMode);
-                applySetting('glassEffects', settings.glassEffects);
-                applySetting('animations', settings.animations);
-                applySetting('autoRefresh', settings.autoRefresh);
-                localStorage.setItem('portalSettings', JSON.stringify(settings));
-            } catch (err) {
-                console.error('Failed to load settings from admin panel:', err);
-                const saved = localStorage.getItem('portalSettings');
-                if (saved) {
-                    const settings = JSON.parse(saved);
-                    applySetting('darkMode', settings.darkMode);
-                    applySetting('glassEffects', settings.glassEffects);
-                    applySetting('animations', settings.animations);
-                    applySetting('autoRefresh', settings.autoRefresh);
-                }
-            }
-        }
-
-        function applySetting(key, value) {
-            const enabled = value === true || value === 'true' || value === 1;
-            if (key === 'darkMode') {
-                document.documentElement.classList.toggle('light-theme', !enabled);
-            }
-            if (key === 'glassEffects') {
-                document.documentElement.dataset.glassEffects = enabled ? '1' : '0';
-            }
-            if (key === 'animations') {
-                document.documentElement.style.setProperty('--animations', enabled ? '1' : '0');
-                document.body.style.setProperty('--animation-state', enabled ? 'running' : 'paused');
-            }
-            if (key === 'autoRefresh') {
-                // Portal auto-refresh is controlled by the service loader interval
-                // This is kept for parity; portal loads services every 30s regardless
-            }
-        }
-
-        loadSettings();
 
         async function loadServices() {
             try {
