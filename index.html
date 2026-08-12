@@ -652,17 +652,27 @@
 
         // Deck hover: activate nearest card when crossing the row
         if (cardsRow) {
-            cardsRow.addEventListener('mousemove', (e) => {
+            const activateNearest = () => {
                 const deckCards = Array.from(document.querySelectorAll('.glass-card.deck-card'));
                 const total = deckCards.length;
                 if (total === 0) return;
                 const rect = cardsRow.getBoundingClientRect();
-                const x = e.clientX - rect.left;
+                const x = window.lastPointerX - rect.left;
+                const y = window.lastPointerY - rect.top;
+                if (x < -40 || x > rect.width + 40 || y < -40 || y > rect.height + 40) {
+                    deckCards.forEach((card) => {
+                        card.classList.remove('fly-out');
+                        card.dataset.flying = '';
+                    });
+                    layoutCards();
+                    return;
+                }
                 let closest = 0;
                 let minDist = Infinity;
                 deckCards.forEach((card, i) => {
                     const cx = card.getBoundingClientRect().left - rect.left + card.offsetWidth / 2;
-                    const dist = Math.abs(x - cx);
+                    const cy = card.getBoundingClientRect().top - rect.top + card.offsetHeight / 2;
+                    const dist = Math.hypot(x - cx, y - cy);
                     if (dist < minDist) { minDist = dist; closest = i; }
                 });
                 deckCards.forEach((card, i) => {
@@ -671,6 +681,11 @@
                     card.dataset.flying = shouldFly ? '1' : '';
                 });
                 layoutCards();
+            };
+            document.addEventListener('mousemove', (e) => {
+                window.lastPointerX = e.clientX;
+                window.lastPointerY = e.clientY;
+                activateNearest();
             });
             cardsRow.addEventListener('mouseleave', () => {
                 const deckCards = Array.from(document.querySelectorAll('.glass-card.deck-card'));
