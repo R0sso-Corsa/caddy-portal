@@ -652,14 +652,15 @@
 
         // Deck hover: activate nearest card when crossing the row
         if (cardsRow) {
+            let lastPointerX = 0, lastPointerY = 0;
             const activateNearest = () => {
                 const deckCards = Array.from(document.querySelectorAll('.glass-card.deck-card'));
                 const total = deckCards.length;
                 if (total === 0) return;
                 const rect = cardsRow.getBoundingClientRect();
-                const x = window.lastPointerX - rect.left;
-                const y = window.lastPointerY - rect.top;
-                if (x < -40 || x > rect.width + 40 || y < -40 || y > rect.height + 40) {
+                const x = lastPointerX - rect.left;
+                const y = lastPointerY - rect.top;
+                if (x < -60 || x > rect.width + 60 || y < -60 || y > rect.height + 60) {
                     deckCards.forEach((card) => {
                         card.classList.remove('fly-out');
                         card.dataset.flying = '';
@@ -667,14 +668,15 @@
                     layoutCards();
                     return;
                 }
+                // Compute expected card centers from layout math, not rendered rects
+                const startX = -((total - 1) * DECK_OVERLAP) / 2;
                 let closest = 0;
                 let minDist = Infinity;
-                deckCards.forEach((card, i) => {
-                    const cx = card.getBoundingClientRect().left - rect.left + card.offsetWidth / 2;
-                    const cy = card.getBoundingClientRect().top - rect.top + card.offsetHeight / 2;
-                    const dist = Math.hypot(x - cx, y - cy);
+                for (let i = 0; i < total; i++) {
+                    const cx = rect.width / 2 + (startX + i * DECK_OVERLAP);
+                    const dist = Math.abs(x - cx);
                     if (dist < minDist) { minDist = dist; closest = i; }
-                });
+                }
                 deckCards.forEach((card, i) => {
                     const shouldFly = i === closest;
                     card.classList.toggle('fly-out', shouldFly);
@@ -683,8 +685,8 @@
                 layoutCards();
             };
             document.addEventListener('mousemove', (e) => {
-                window.lastPointerX = e.clientX;
-                window.lastPointerY = e.clientY;
+                lastPointerX = e.clientX;
+                lastPointerY = e.clientY;
                 activateNearest();
             });
             cardsRow.addEventListener('mouseleave', () => {
