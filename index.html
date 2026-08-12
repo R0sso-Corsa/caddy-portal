@@ -662,9 +662,11 @@
                 card.dataset.baseTransform = `translate(calc(-50% + ${tx}px), ${ty}px) rotate(${rot}deg) scale(${scale})`;
                 card.style.transform = card.dataset.baseTransform;
 
-                // Preserve left-overlaps-right stacking order.
-                // Right neighbors already have lower base z-index, so no flying boost is needed.
-                card.style.zIndex = total - i;
+                // Left card always overlaps right card. Flying card rises just above
+                // cards to its right, but stays below cards to its left.
+                const baseZ = total - i;
+                const flyZ = total - i + 1;
+                card.style.zIndex = isFlying ? flyZ : baseZ;
             });
         }
 
