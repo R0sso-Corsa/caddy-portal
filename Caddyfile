@@ -33,3 +33,44 @@ slskd.fhvps.co.uk {
 openwebui.fhvps.co.uk {
 	reverse_proxy open-webui:8080
 }
+
+vps-satellite-c50-b-1.tail2fd22b.ts.net {
+	redir /cloud /cloud/
+	redir /music /music/
+	redir /plex /plex/
+
+	handle_path /cloud* {
+		uri strip_prefix /cloud
+		reverse_proxy nextcloud:80 {
+			header_up X-Forwarded-Host {host}
+			header_up X-Forwarded-Proto https
+			header_up X-Script-Name /cloud
+		}
+	}
+
+	handle_path /music* {
+		uri strip_prefix /music
+		reverse_proxy navidrome:4533 {
+			header_up X-Forwarded-Host {host}
+			header_up X-Forwarded-Proto https
+		}
+	}
+
+	handle_path /plex* {
+		uri strip_prefix /plex
+		reverse_proxy plex:32400 {
+			header_up X-Forwarded-Host {host}
+			header_up X-Forwarded-Proto https
+		}
+	}
+
+	handle_path /slskd* {
+		uri strip_prefix /slskd
+		reverse_proxy slskd:5030 {
+			header_up X-Forwarded-Host {host}
+			header_up X-Forwarded-Proto https
+		}
+	}
+
+	respond "Service not found" 404
+}
